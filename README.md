@@ -13,27 +13,22 @@ md-code-render --types dot --output-dir ./static/diagrams/ --link-prefix "./diag
 
 Input:
 
-
-```markdown
-```dot render
-digraph G {
-    A -> B;
-    B -> C -> D;
-    B -> E;
-}
-```
-```
+    ```dot render
+    digraph G {
+        A -> B;
+        B -> C -> D;
+        B -> E;
+    }
+    ```
 
 Output:
 
-```markdown
-![render-34d8458eb066b9b3ac396fd5aee4c068.svg](/diagrams/render-34d8458eb066b9b3ac396fd5aee4c068.svg)
+    ![render-34d8458eb066b9b3ac396fd5aee4c068.svg](/diagrams/render-34d8458eb066b9b3ac396fd5aee4c068.svg)
 
-```dot render
-digraph G {
-    A -> B;
-    B -> C -> D;
-    B -> E;
-}
-```
-```
+    ```dot render
+    digraph G {
+        A -> B;
+        B -> C -> D;
+        B -> E;
+    }
+    ```
