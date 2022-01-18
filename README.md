@@ -5,6 +5,8 @@ Renders code blocks in Markdown files into images, and inlines the images in the
 - Supported languages: `dot`
 - On the roadmap: `plantuml`
 
+This is an experimental program for use in my knowledge base. The goal is to have code blocks containing diagramming DSLs, and be able to render them into inline images. There are a few existing implementations, but none of them do what I want. Most _replace_ the code block, whereas I want to inline the rendered image _alongside_ the code block. This tool is fairly opinionated at the moment. I may extend and generalize it in the future, though at the moment it does what I need it to.
+
 ## Example
 
 ```bash
