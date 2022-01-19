@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/md5"
 	"errors"
@@ -21,7 +20,8 @@ const (
 )
 
 // Match: ![render-db6d08bb022ed12c2cc74d86d7a4707d.svg](/optional/path/to/render-db6d08bb022ed12c2cc74d86d7a4707d.svg)
-var renderedImageRegexp = regexp.MustCompile(`!\[render-.{32}\..+\]\(.*render-.{32}\..+\)`)
+// Capture group on the hash.
+var renderedImageRegexp = regexp.MustCompile(`!\[render-.{32}\..+\]\(.*render-(.{32})\..+\)`)
 
 type Args struct {
 	Types      []string // Languages to render
@@ -50,32 +50,124 @@ func (a *Args) Parse() error {
 	return nil
 }
 
-type CodeBlock struct {
-	Type     string
-	Fenced   string
-	Contents string
-}
-
-func (c *CodeBlock) Reset() {
-	c.Type = ""
-	c.Fenced = ""
-	c.Contents = ""
-}
-
-func main() {
+func run() error {
 	args := &Args{}
 	if err := args.Parse(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
 	}
 
 	for _, v := range args.Files {
 		err := processFile(v, args.Types, args.OutputDir, args.LinkPrefix)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return err
 		}
 	}
+	return nil
+}
+
+func main() {
+	err := run()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+// Chunk represents a segment of a file
+type Chunk struct {
+	Lines          []string // Lines the chunk contains
+	StartLineIndex int      // Index is relative to the input file
+	EndLineIndex   int      // Index is relative to the input file
+
+	IsRenderable           bool
+	Language               string
+	ImageRelativeLineIndex int      // Where the image is located in the chunk. Index is relative to the chunk's lines.
+	RenderedHash           string   // If image has been rendered before, contains the hash of the code block previously used to render the image
+	CodeBlockContent       []string // The contents of the code block
+}
+
+func (r *Chunk) ShouldRender() bool {
+	if !r.IsRenderable {
+		return false
+	}
+	if r.HashContent() != r.RenderedHash {
+		return true
+	}
+	return false
+}
+
+func (r *Chunk) HashContent() string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(strings.Join(r.CodeBlockContent, "\n"))))
+}
+
+func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, err error) {
+	var content []byte
+	var ext string
+
+	switch r.Language {
+	case "dot":
+		content, err = runShellCommand("dot", []string{"-Tsvg"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
+		if err != nil {
+			return "", err
+		}
+		ext = "svg"
+	default:
+		return "", fmt.Errorf("unsupported type: %s", r.Language)
+	}
+
+	fileName = "render-" + r.HashContent() + "." + ext
+	outputFilePath := path.Join(outputDir, fileName)
+	f, err := os.Create(outputFilePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	f.Write(content)
+
+	// Update the chunk's lines
+	image := buildMarkdownImage(fileName, linkPrefix)
+	if r.RenderedHash != "" {
+		r.Lines[r.ImageRelativeLineIndex] = image
+	} else {
+		r.Lines = append([]string{image, ""}, r.Lines...)
+	}
+
+	return fileName, nil
+}
+
+func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*Chunk, error) {
+	chunk := &Chunk{}
+	chunk.IsRenderable = true
+	chunk.Language = language
+	chunk.StartLineIndex = codeBlockIndex
+
+	// Collect code block
+	for i := codeBlockIndex + 1; i < len(lines); i++ {
+		line := lines[i]
+		if line == "```" {
+			chunk.EndLineIndex = i
+			break
+		} else {
+			chunk.CodeBlockContent = append(chunk.CodeBlockContent, line)
+		}
+	}
+
+	// Check 2 lines above if the image has been rendered before
+	for i := 1; i <= 2; i++ {
+		idx := codeBlockIndex - i
+		prevLine := lines[idx]
+		matches := renderedImageRegexp.FindStringSubmatch(prevLine)
+		if len(matches) == 2 {
+			chunk.RenderedHash = matches[1]
+			chunk.StartLineIndex = idx
+			chunk.ImageRelativeLineIndex = 0
+			break
+		}
+	}
+
+	chunk.Lines = append(chunk.Lines, lines[chunk.StartLineIndex:chunk.EndLineIndex+1]...)
+
+	return chunk, nil
 }
 
 func processFile(filePath string, types []string, outputDir string, linkPrefix string) error {
@@ -84,11 +176,17 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 		return err
 	}
 
-	// If output directory is not specified, default to the directory of
-	// the file being processed.
-	if outputDir == "" {
-		outputDir = path.Dir(filePath)
+	// Read file into lines
+	f, err := os.Open(filePath)
+	if err != nil {
+		return err
 	}
+	defer f.Close()
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(b), "\n")
 
 	// Construct a lookup for O(1) access
 	typeLookup := make(map[string]bool)
@@ -96,94 +194,73 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 		typeLookup[v] = true
 	}
 
-	// Initialize state
-	var lines []string
-	currentCodeBlock := &CodeBlock{}
-	state := stateNone
-	hasChanges := false
-
-	f, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		switch state {
-		case stateNone:
-			if strings.HasPrefix(line, "```") {
-				for k := range typeLookup {
-					if strings.HasPrefix(line, fmt.Sprintf("```%s render", k)) {
-						state = stateInCodeBlock
-						currentCodeBlock.Fenced = line + "\n"
-						currentCodeBlock.Type = k
-						break
+	// Find code blocks eligible for rendering
+	var renderRegions []*Chunk
+	for idx, line := range lines {
+		if strings.HasPrefix(line, "```") {
+			for k := range typeLookup {
+				if strings.HasPrefix(line, fmt.Sprintf("```%s render", k)) {
+					chunk, err := getRenderableChunk(lines, idx, k)
+					if err != nil {
+						return err
 					}
+					renderRegions = append(renderRegions, chunk)
+					break
 				}
-			}
-			// Append lines if state didn't change
-			if state == stateNone {
-				lines = append(lines, line)
-			}
-		case stateInCodeBlock:
-			// Check if we're exiting a rendered code block
-			if strings.HasPrefix(line, "```") {
-				state = stateNone
-				currentCodeBlock.Fenced += line
-				hasChanges = true
-
-				// Render the code block
-				outputFileName, err := renderCodeBlock(currentCodeBlock, outputDir)
-				if err != nil {
-					return err
-				}
-				fmt.Printf("file=%s rendered=%s\n", filePath, outputFileName)
-
-				// Check if code block has been rendered before by looking at the previous two lines.
-				isRenderedBefore := false
-				for i := 1; i <= 2; i++ {
-					prevLine := lines[len(lines)-i]
-					if renderedImageRegexp.MatchString(prevLine) {
-						lines[len(lines)-i] = buildMarkdownImage(outputFileName, linkPrefix)
-						isRenderedBefore = true
-						break
-					}
-				}
-
-				// If not rendered before, add the image link above the code block
-				if !isRenderedBefore {
-					lines = append(lines, buildMarkdownImage(outputFileName, linkPrefix), "")
-				}
-
-				// Add the fenced code block back to the file
-				lines = append(lines, strings.Split(currentCodeBlock.Fenced, "\n")...)
-
-				currentCodeBlock.Reset()
-				continue
-			} else {
-				// We're still within the code block, so continue adding collecting its lines.
-				currentCodeBlock.Fenced += line + "\n"
-				currentCodeBlock.Contents += line + "\n"
 			}
 		}
-
 	}
 
-	if err := scanner.Err(); err != nil {
-		return err
+	// Construct a series of normal and render regions to represent the file
+	var allChunks []*Chunk
+	var currentIndex int
+	for _, renderableChunk := range renderRegions {
+		if currentIndex < renderableChunk.StartLineIndex {
+			normalChunk := &Chunk{
+				StartLineIndex: currentIndex,
+				EndLineIndex:   renderableChunk.StartLineIndex - 1,
+			}
+			normalChunk.Lines = lines[normalChunk.StartLineIndex : normalChunk.EndLineIndex+1]
+			allChunks = append(allChunks, normalChunk)
+			allChunks = append(allChunks, renderableChunk)
+			currentIndex = renderableChunk.EndLineIndex + 1
+		}
+	}
+	if currentIndex < len(lines) {
+		normalChunk := &Chunk{
+			StartLineIndex: currentIndex,
+			EndLineIndex:   len(lines) - 1,
+		}
+		normalChunk.Lines = lines[normalChunk.StartLineIndex : normalChunk.EndLineIndex+1]
+		allChunks = append(allChunks, normalChunk)
 	}
 
-	// Write updated contents back to disk
-	if hasChanges {
+	// Render the renderable chunks and join the chunks back into a file
+	var fileHasChanged bool
+	var outputLines []string
+	for _, chunk := range allChunks {
+		if chunk.ShouldRender() {
+			imageFileName, err := chunk.Render(outputDir, linkPrefix)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("file=%s rendered=%s\n", filePath, imageFileName)
+			fileHasChanged = true
+		}
+		outputLines = append(outputLines, chunk.Lines...)
+	}
+
+	// Write to disk
+	if fileHasChanged {
 		writer, err := os.OpenFile(filePath, os.O_WRONLY, 0666)
 		if err != nil {
 			return err
 		}
 		defer writer.Close()
-		output := strings.Join(lines, "\n")
+		output := strings.Join(outputLines, "\n")
 		writer.WriteString(output)
 	}
+
 	return nil
 }
 
@@ -207,33 +284,6 @@ func runShellCommand(command string, args []string, stdin io.Reader) (stdoutOutp
 	cmd.Stdout = stdout
 	err = cmd.Run()
 	return stdout.Bytes(), err
-}
-
-func renderCodeBlock(codeBlock *CodeBlock, outputDir string) (fileName string, err error) {
-	var content []byte
-	var ext string
-
-	switch codeBlock.Type {
-	case "dot":
-		content, err = runShellCommand("dot", []string{"-Tsvg"}, strings.NewReader(codeBlock.Contents))
-		if err != nil {
-			return "", err
-		}
-		ext = "svg"
-	default:
-		return "", fmt.Errorf("unsupported type: %s", codeBlock.Type)
-	}
-
-	fileHash := fmt.Sprintf("%x", md5.Sum([]byte(codeBlock.Contents)))
-	fileName = "render-" + fileHash + "." + ext
-	outputFilePath := path.Join(outputDir, fileName)
-	f, err := os.Create(outputFilePath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	f.Write(content)
-	return fileName, nil
 }
 
 func buildMarkdownImage(outputFilename, linkPrefix string) string {
