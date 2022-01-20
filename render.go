@@ -136,51 +136,53 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 		typeLookup[v] = true
 	}
 
-	// Find code blocks eligible for rendering
-	var renderRegions []*Chunk
+	// Split the file into chunks. A chunk can represent either a normal
+	// segment, or a renderable segment.
+	var chunks []*Chunk
+	var lastChunkIndex int
 	for idx, line := range lines {
+		// Skip ahead if these lines have been assigned a chunk already
+		if idx < lastChunkIndex {
+			continue
+		}
+		// Look for renderable code blocks
 		if strings.HasPrefix(line, "```") {
 			for k := range typeLookup {
 				if strings.HasPrefix(line, fmt.Sprintf("```%s render", k)) {
-					chunk, err := getRenderableChunk(lines, idx, k)
+					// Look at lines in and around the code
+					// block to determine the renderable chunk.
+					renderChunk, err := getRenderableChunk(lines, idx, k)
 					if err != nil {
 						return err
 					}
-					renderRegions = append(renderRegions, chunk)
+					// Preceding lines not part of the renderable chunk are part of a
+					// normal chunk; construct one and add it to our list of chunks.
+					normalChunk := &Chunk{
+						StartLineIndex: lastChunkIndex,
+						EndLineIndex:   renderChunk.StartLineIndex - 1,
+					}
+					normalChunk.Lines = lines[normalChunk.StartLineIndex : normalChunk.EndLineIndex+1]
+					chunks = append(chunks, normalChunk, renderChunk)
+					lastChunkIndex = renderChunk.EndLineIndex + 1
 					break
 				}
 			}
 		}
 	}
-
-	// Construct a series of normal and render regions to represent the file
-	var allChunks []*Chunk
-	var currentIndex int
-	for _, renderableChunk := range renderRegions {
-		if currentIndex < renderableChunk.StartLineIndex {
-			normalChunk := &Chunk{
-				StartLineIndex: currentIndex,
-				EndLineIndex:   renderableChunk.StartLineIndex - 1,
-			}
-			normalChunk.Lines = lines[normalChunk.StartLineIndex : normalChunk.EndLineIndex+1]
-			allChunks = append(allChunks, normalChunk)
-			allChunks = append(allChunks, renderableChunk)
-			currentIndex = renderableChunk.EndLineIndex + 1
-		}
-	}
-	if currentIndex < len(lines) {
+	if lastChunkIndex < len(lines) {
+		// The rest of the file is a normal chunk
 		normalChunk := &Chunk{
-			StartLineIndex: currentIndex,
+			StartLineIndex: lastChunkIndex,
 			EndLineIndex:   len(lines) - 1,
 		}
 		normalChunk.Lines = lines[normalChunk.StartLineIndex : normalChunk.EndLineIndex+1]
-		allChunks = append(allChunks, normalChunk)
+		chunks = append(chunks, normalChunk)
 	}
 
 	// Render the renderable chunks and join the chunks back into a file
 	var fileHasChanged bool
 	var outputLines []string
-	for _, chunk := range allChunks {
+	for _, chunk := range chunks {
 		if chunk.ShouldRender() {
 			imageFileName, err := chunk.Render(outputDir, linkPrefix)
 			if err != nil {
