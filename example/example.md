@@ -1,6 +1,22 @@
-# Example
-
 ## Normal mode
+
+### Input
+
+    ```dot render
+    digraph G {
+        rankdir=LR;
+        A -> B -> C;
+    }
+    ```
+
+    ```dot render{"mode": "normal"}
+    digraph G {
+        rankdir=LR;
+        A -> B -> C;
+    }
+    ```
+
+### Output
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
@@ -20,7 +36,20 @@ digraph G {
 }
 ```
 
+---
+
 ## Code collapsed mode
+
+### Input
+
+    ```dot render{"mode": "code-collapsed"}
+    digraph G {
+        rankdir=LR;
+        A -> B -> C;
+    }
+    ```
+
+### Output
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
@@ -35,7 +64,20 @@ digraph G {
 
 </details>
 
+---
+
 ## Image collapsed mode
+
+### Input
+
+    ```dot render{"mode": "image-collapsed"}
+    digraph G {
+        rankdir=LR;
+        A -> B -> C;
+    }
+    ```
+
+### Output
 
 ```dot render{"mode": "image-collapsed"}
 digraph G {
@@ -50,11 +92,23 @@ digraph G {
 
 </details>
 
+---
+
 ## Code hidden mode
 
 The code block will be hidden in this mode. It will still be viewable in in the
-HTML source code as a HTML comment. The render directive for this code block is
-`render{"mode": "code-hidden"}`.
+HTML source code as a HTML comment.
+
+### Input
+
+    ```dot render{"mode": "code-hidden"}
+    digraph G {
+        rankdir=LR;
+        A -> B -> C;
+    }
+    ```
+
+### Output
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
