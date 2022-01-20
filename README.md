@@ -53,7 +53,7 @@ Supported modes are:
 
 `normal` mode:
 
-![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 ```dot render
 digraph G {
@@ -64,7 +64,7 @@ digraph G {
 
 `code-collapsed` mode:
 
-![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 <details><summary>Source</summary>
 
@@ -88,13 +88,13 @@ digraph G {
 
 <details><summary>Image</summary>
 
-![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 </details>
 
 `code-hidden` mode:
 
-![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 <!--
 ```dot render{"mode": "code-hidden"}
