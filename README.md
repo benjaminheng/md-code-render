@@ -1,4 +1,4 @@
-# md-code-render
+# md-code-renderer
 
 Renders code blocks in Markdown files into images, and inlines the images in the file.
 
@@ -10,7 +10,7 @@ This is an experimental program for use in my knowledge base. The goal is to hav
 ## Example
 
 ```bash
-md-code-render --types dot --output-dir ./static/diagrams/ --link-prefix "./diagrams/" ./file.md
+md-code-renderer render --languages dot --output-dir ./static/diagrams/ --link-prefix "./diagrams/" ./file.md
 ```
 
 Input:

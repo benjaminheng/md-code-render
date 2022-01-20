@@ -22,7 +22,7 @@ var config Config
 
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "md-code-render",
+		Use:   "md-code-renderer",
 		Short: "A processor to render code blocks in Markdown files",
 		Long:  ``,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

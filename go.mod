@@ -1,4 +1,4 @@
-module github.com/benjaminheng/md-code-render
+module github.com/benjaminheng/md-code-renderer
 
 go 1.16
 
