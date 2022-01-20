@@ -14,6 +14,8 @@ it does what I need it to.
 
 ## Example
 
+This readme has been processed by `md-code-renderer` to render the diagrams.
+
 ```bash
 md-code-renderer render --languages dot --output-dir example/ --link-prefix "./example/" ./README.md
 ```
