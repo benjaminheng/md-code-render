@@ -8,6 +8,9 @@ import (
 )
 
 type Config struct {
+	Clean struct {
+		ImageDir string
+	}
 	Render struct {
 		OutputDir  string // Directory to output rendered files to
 		Languages  string // Languages to render, comma separated
@@ -29,6 +32,7 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewRenderCmd())
+	cmd.AddCommand(NewCleanCmd())
 	return cmd
 }
 
