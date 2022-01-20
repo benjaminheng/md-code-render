@@ -23,7 +23,7 @@ func NewCleanCmd() *cobra.Command {
 		},
 		RunE: cleanCmd,
 	}
-	cmd.Flags().StringVar(&config.Clean.ImageDir, "image-dir", "", "Directory containing images")
+	cmd.Flags().StringVar(&config.Clean.ImageDir, "image-dir", "", "(required) Directory containing images")
 	cmd.MarkFlagRequired("image-dir")
 	return cmd
 }

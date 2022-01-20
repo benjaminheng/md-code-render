@@ -52,11 +52,17 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 
 	switch r.Language {
 	case "dot":
+		ext = "svg"
 		content, err = runShellCommand("dot", []string{"-Tsvg"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
 		if err != nil {
 			return "", err
 		}
+	case "plantuml":
 		ext = "svg"
+		content, err = runShellCommand("plantuml", []string{"-tsvg", "-pipe"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
+		if err != nil {
+			return "", err
+		}
 	default:
 		return "", fmt.Errorf("unsupported type: %s", r.Language)
 	}
@@ -95,7 +101,7 @@ func NewRenderCmd() *cobra.Command {
 		RunE: renderCmd,
 	}
 	cmd.Flags().StringVar(&config.Render.OutputDir, "output-dir", "", "Directory to render code blocks to. If not specified, output will be rendered to the same directory as the input file.")
-	cmd.Flags().StringVar(&config.Render.Languages, "languages", "", "Languages to render (comma-separated, supported languages: [dot])")
+	cmd.Flags().StringVar(&config.Render.Languages, "languages", "", "(required) Languages to render. Comma-separated. Supported languages: [dot, plantuml].")
 	cmd.MarkFlagRequired("languages")
 	cmd.Flags().StringVar(&config.Render.LinkPrefix, "link-prefix", "", "Prefix to use when linking to rendered files")
 	return cmd
