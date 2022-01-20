@@ -20,6 +20,8 @@ import (
 // Capture group on the hash.
 var renderedImageRegexp = regexp.MustCompile(`!\[render-.{32}\..+\]\(.*render-(.{32})\..+\)`)
 
+var defaultRenderOptions = RenderOptions{Mode: "normal"}
+
 type RenderOptions struct {
 	Mode string `json:"mode"` // Modes: normal, code-collapsed, image-collapsed, code-hidden
 }
@@ -93,11 +95,7 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 
 	// Update the chunk's lines
 	image := buildMarkdownImage(fileName, linkPrefix)
-	if r.RenderedHash != "" {
-		r.Lines[r.ImageRelativeLineIndex] = image
-	} else {
-		r.Lines = append([]string{image, ""}, r.Lines...)
-	}
+	r.Lines[r.ImageRelativeLineIndex] = image
 
 	return fileName, nil
 }
@@ -233,8 +231,6 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	chunk := &Chunk{}
 	chunk.IsRenderable = true
 	chunk.Language = language
-	chunk.StartLineIndex = codeBlockIndex
-	chunk.RenderOptions.Mode = "normal"
 
 	fence := lines[codeBlockIndex]
 	renderOptionsJSON := strings.TrimPrefix(fence, fmt.Sprintf("```%s render", language))
@@ -248,6 +244,9 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 		if err != nil {
 			return nil, err
 		}
+		chunk.RenderOptions = renderOptions
+	} else {
+		chunk.RenderOptions = defaultRenderOptions
 	}
 
 	var err error
@@ -256,6 +255,7 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	case "normal":
 		err = renderTemplateManager.Normal(lines, codeBlockIndex, chunk)
 	case "code-collapsed":
+		err = renderTemplateManager.CodeCollapsed(lines, codeBlockIndex, chunk)
 	case "image-collapsed":
 	case "code-hidden":
 		// TODO: implement templates
@@ -265,8 +265,6 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	if err != nil {
 		return nil, err
 	}
-
-	chunk.Lines = append(chunk.Lines, lines[chunk.StartLineIndex:chunk.EndLineIndex+1]...)
 
 	return chunk, nil
 }
@@ -295,13 +293,15 @@ type RenderTemplateManager struct{}
 //	```dot render
 //	```
 func (m RenderTemplateManager) Normal(lines []string, codeBlockIndex int, chunk *Chunk) (err error) {
-	content, codeBlockEndIndex, err := m.collectCodeBlock(lines, codeBlockIndex)
+	content, codeBlockEndIndex, fenceStart, fenceEnd, err := m.collectCodeBlock(lines, codeBlockIndex)
 	if err != nil {
 		return err
 	}
 	chunk.CodeBlockContent = content
+	chunk.StartLineIndex = codeBlockIndex
 	chunk.EndLineIndex = codeBlockEndIndex
 
+	var isRenderedBefore bool
 	// Check 2 lines above if the image has been rendered before
 	for i := 1; i <= 2; i++ {
 		idx := codeBlockIndex - i
@@ -311,19 +311,81 @@ func (m RenderTemplateManager) Normal(lines []string, codeBlockIndex int, chunk 
 			chunk.RenderedHash = matches[1]
 			chunk.StartLineIndex = idx
 			chunk.ImageRelativeLineIndex = 0
+			isRenderedBefore = true
 			break
 		}
+	}
+
+	// Render the template into the chunk. Image will be replaced later.
+	if !isRenderedBefore {
+		chunk.Lines = []string{"<!-- image here -->", "", fenceStart}
+		chunk.Lines = append(chunk.Lines, chunk.CodeBlockContent...)
+		chunk.Lines = append(chunk.Lines, fenceEnd)
+		chunk.ImageRelativeLineIndex = 0
+		chunk.RenderedHash = ""
+	} else {
+		chunk.Lines = lines[chunk.StartLineIndex : chunk.EndLineIndex+1]
 	}
 	return nil
 }
 
-func (m RenderTemplateManager) collectCodeBlock(lines []string, codeBlockIndex int) (content []string, codeBlockEndIndex int, err error) {
+// CodeCollapsed handles the template for the "code-collapsed" mode. The template looks like:
+//
+//	![]()
+//
+//	<details><summary>Source</summary>
+//
+//	```dot render
+//	```
+//
+//	</details>
+func (m RenderTemplateManager) CodeCollapsed(lines []string, codeBlockIndex int, chunk *Chunk) (err error) {
+	content, codeBlockEndIndex, fenceStart, fenceEnd, err := m.collectCodeBlock(lines, codeBlockIndex)
+	if err != nil {
+		return err
+	}
+	chunk.CodeBlockContent = content
+	chunk.StartLineIndex = codeBlockIndex
+	chunk.EndLineIndex = codeBlockEndIndex
+
+	// Check if rendered before
+	closingDetailsTag := "</details>"
+	hasClosingDetailsTag := codeBlockEndIndex+2 < len(lines) && lines[codeBlockEndIndex+2] == closingDetailsTag
+	openingDetailsTag := "<details><summary>Source</summary>"
+	hasOpeningDetailsTag := codeBlockIndex-2 >= 0 && lines[codeBlockIndex-2] == openingDetailsTag
+	var hasImage bool
+	if codeBlockIndex-4 >= 0 {
+		line := lines[codeBlockIndex-4]
+		matches := renderedImageRegexp.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			chunk.RenderedHash = matches[1]
+			chunk.StartLineIndex = codeBlockIndex - 4
+			chunk.ImageRelativeLineIndex = 0
+			hasImage = true
+		}
+	}
+
+	// Render the template into the chunk. Image will be replaced later.
+	isRenderedBefore := hasClosingDetailsTag && hasOpeningDetailsTag && hasImage
+	if !isRenderedBefore {
+		chunk.Lines = []string{"<!-- image here -->", "", openingDetailsTag, "", fenceStart}
+		chunk.Lines = append(chunk.Lines, chunk.CodeBlockContent...)
+		chunk.Lines = append(chunk.Lines, fenceEnd, "", closingDetailsTag)
+		chunk.ImageRelativeLineIndex = 0
+		chunk.RenderedHash = ""
+	} else {
+		chunk.Lines = lines[chunk.StartLineIndex : chunk.EndLineIndex+1]
+	}
+	return nil
+}
+
+func (m RenderTemplateManager) collectCodeBlock(lines []string, codeBlockIndex int) (content []string, codeBlockEndIndex int, fenceStart string, fenceEnd string, err error) {
 	for i := codeBlockIndex + 1; i < len(lines); i++ {
 		line := lines[i]
 		if line == "```" {
-			return content, i, nil
+			return content, i, lines[codeBlockIndex], line, nil
 		}
 		content = append(content, line)
 	}
-	return nil, 0, errors.New("code block is unterminated")
+	return nil, 0, "", "", errors.New("code block is unterminated")
 }
