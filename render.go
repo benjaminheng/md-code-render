@@ -257,6 +257,7 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	case "code-collapsed":
 		err = renderTemplateManager.CodeCollapsed(lines, codeBlockIndex, chunk)
 	case "image-collapsed":
+		err = renderTemplateManager.ImageCollapsed(lines, codeBlockIndex, chunk)
 	case "code-hidden":
 		// TODO: implement templates
 	default:
@@ -372,6 +373,55 @@ func (m RenderTemplateManager) CodeCollapsed(lines []string, codeBlockIndex int,
 		chunk.Lines = append(chunk.Lines, chunk.CodeBlockContent...)
 		chunk.Lines = append(chunk.Lines, fenceEnd, "", closingDetailsTag)
 		chunk.ImageRelativeLineIndex = 0
+		chunk.RenderedHash = ""
+	} else {
+		chunk.Lines = lines[chunk.StartLineIndex : chunk.EndLineIndex+1]
+	}
+	return nil
+}
+
+// ImageCollapsed handles the template for the "image-collapsed" mode. The template looks like:
+//
+//	```dot render
+//	```
+//
+//	<details><summary>Image</summary>
+//
+//	![]()
+//
+//	</details>
+func (m RenderTemplateManager) ImageCollapsed(lines []string, codeBlockIndex int, chunk *Chunk) (err error) {
+	content, codeBlockEndIndex, fenceStart, fenceEnd, err := m.collectCodeBlock(lines, codeBlockIndex)
+	if err != nil {
+		return err
+	}
+	chunk.CodeBlockContent = content
+	chunk.StartLineIndex = codeBlockIndex
+	chunk.EndLineIndex = codeBlockEndIndex
+
+	// Check if rendered before
+	openingDetailsTag := "<details><summary>Image</summary>"
+	hasOpeningDetailsTag := codeBlockEndIndex+2 < len(lines) && lines[codeBlockEndIndex+2] == openingDetailsTag
+	closingDetailsTag := "</details>"
+	hasClosingDetailsTag := codeBlockEndIndex+6 < len(lines) && lines[codeBlockEndIndex+6] == closingDetailsTag
+	var hasImage bool
+	if codeBlockEndIndex+4 < len(lines) {
+		line := lines[codeBlockEndIndex+4]
+		matches := renderedImageRegexp.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			chunk.RenderedHash = matches[1]
+			chunk.EndLineIndex = codeBlockEndIndex + 6
+			chunk.ImageRelativeLineIndex = (chunk.EndLineIndex - chunk.StartLineIndex) - 2
+			hasImage = true
+		}
+	}
+
+	// Render the template into the chunk. Image will be replaced later.
+	isRenderedBefore := hasClosingDetailsTag && hasOpeningDetailsTag && hasImage
+	if !isRenderedBefore {
+		chunk.Lines = append([]string{fenceStart}, chunk.CodeBlockContent...)
+		chunk.Lines = append(chunk.Lines, []string{fenceEnd, "", openingDetailsTag, "", "<!-- image here --", "", closingDetailsTag}...)
+		chunk.ImageRelativeLineIndex = len(chunk.Lines) - 3
 		chunk.RenderedHash = ""
 	} else {
 		chunk.Lines = lines[chunk.StartLineIndex : chunk.EndLineIndex+1]

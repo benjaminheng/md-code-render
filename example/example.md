@@ -31,3 +31,17 @@ digraph G {
 ```
 
 </details>
+
+## Image collapsed mode
+
+```dot render{"mode": "image-collapsed"}
+digraph G {
+    A -> B -> C
+}
+```
+
+<details><summary>Image</summary>
+
+![render-48fb4eec0b5d357512d90010cdef8bff.svg](render-48fb4eec0b5d357512d90010cdef8bff.svg)
+
+</details>
