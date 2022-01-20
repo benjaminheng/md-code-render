@@ -51,7 +51,7 @@ Supported modes are:
 - `image-collapsed`
 - `code-hidden`
 
-`normal` mode:
+### `normal` mode:
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
@@ -62,7 +62,7 @@ digraph G {
 }
 ```
 
-`code-collapsed` mode:
+### `code-collapsed` mode:
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
@@ -77,7 +77,7 @@ digraph G {
 
 </details>
 
-`image-collapsed` mode:
+### `image-collapsed` mode:
 
 ```dot render{"mode": "image-collapsed"}
 digraph G {
@@ -92,7 +92,7 @@ digraph G {
 
 </details>
 
-`code-hidden` mode:
+### `code-hidden` mode:
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
