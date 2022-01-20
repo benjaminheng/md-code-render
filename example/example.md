@@ -6,7 +6,8 @@
 
 ```dot render
 digraph G {
-    A -> B -> C
+    rankdir=LR;
+    A -> B -> C;
 }
 ```
 
@@ -14,7 +15,8 @@ digraph G {
 
 ```dot render{"mode": "normal"}
 digraph G {
-    A -> B -> C
+    rankdir=LR;
+    A -> B -> C;
 }
 ```
 
@@ -26,7 +28,8 @@ digraph G {
 
 ```dot render{"mode": "code-collapsed"}
 digraph G {
-    A -> B -> C
+    rankdir=LR;
+    A -> B -> C;
 }
 ```
 
@@ -36,7 +39,8 @@ digraph G {
 
 ```dot render{"mode": "image-collapsed"}
 digraph G {
-    A -> B -> C
+    rankdir=LR;
+    A -> B -> C;
 }
 ```
 
@@ -57,7 +61,8 @@ HTML source code as a HTML comment. The render directive for this code block is
 <!--
 ```dot render{"mode": "code-hidden"}
 digraph G {
-    A -> B -> C
+    rankdir=LR;
+    A -> B -> C;
 }
 ```
 -->
