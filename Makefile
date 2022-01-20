@@ -1,6 +1,6 @@
 all:
 	go install ./...
 
-.PHONY: example
-example:
-	md-code-renderer render --languages dot --output-dir example/ ./example/example.md
+.PHONY: readme
+readme:
+	md-code-renderer render --languages dot --output-dir example/ --link-prefix "./example/" ./README.md
