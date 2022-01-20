@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,21 @@ import (
 // Capture group on the hash.
 var renderedImageRegexp = regexp.MustCompile(`!\[render-.{32}\..+\]\(.*render-(.{32})\..+\)`)
 
+var defaultRenderOptions = RenderOptions{Mode: "normal"}
+
+type RenderOptions struct {
+	Mode string `json:"mode"` // Modes: normal, code-collapsed, image-collapsed, code-hidden
+}
+
+func (o *RenderOptions) Validate() error {
+	switch o.Mode {
+	case "normal", "code-collapsed", "image-collapsed", "code-hidden":
+	default:
+		return errors.New("unsupported mode")
+	}
+	return nil
+}
+
 // Chunk represents a segment of a file
 type Chunk struct {
 	Lines          []string // Lines the chunk contains
@@ -30,6 +46,7 @@ type Chunk struct {
 	ImageRelativeLineIndex int      // Where the image is located in the chunk. Index is relative to the chunk's lines.
 	RenderedHash           string   // If image has been rendered before, contains the hash of the code block previously used to render the image
 	CodeBlockContent       []string // The contents of the code block
+	RenderOptions          RenderOptions
 }
 
 func (r *Chunk) ShouldRender() bool {
@@ -78,11 +95,7 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 
 	// Update the chunk's lines
 	image := buildMarkdownImage(fileName, linkPrefix)
-	if r.RenderedHash != "" {
-		r.Lines[r.ImageRelativeLineIndex] = image
-	} else {
-		r.Lines = append([]string{image, ""}, r.Lines...)
-	}
+	r.Lines[r.ImageRelativeLineIndex] = image
 
 	return fileName, nil
 }
@@ -218,33 +231,41 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	chunk := &Chunk{}
 	chunk.IsRenderable = true
 	chunk.Language = language
-	chunk.StartLineIndex = codeBlockIndex
 
-	// Collect code block
-	for i := codeBlockIndex + 1; i < len(lines); i++ {
-		line := lines[i]
-		if line == "```" {
-			chunk.EndLineIndex = i
-			break
-		} else {
-			chunk.CodeBlockContent = append(chunk.CodeBlockContent, line)
+	fence := lines[codeBlockIndex]
+	renderOptionsJSON := strings.TrimPrefix(fence, fmt.Sprintf("```%s render", language))
+	if strings.HasPrefix(renderOptionsJSON, "{") && strings.HasSuffix(renderOptionsJSON, "}") {
+		var renderOptions RenderOptions
+		err := json.Unmarshal([]byte(renderOptionsJSON), &renderOptions)
+		if err != nil {
+			return nil, err
 		}
+		err = renderOptions.Validate()
+		if err != nil {
+			return nil, err
+		}
+		chunk.RenderOptions = renderOptions
+	} else {
+		chunk.RenderOptions = defaultRenderOptions
 	}
 
-	// Check 2 lines above if the image has been rendered before
-	for i := 1; i <= 2; i++ {
-		idx := codeBlockIndex - i
-		prevLine := lines[idx]
-		matches := renderedImageRegexp.FindStringSubmatch(prevLine)
-		if len(matches) == 2 {
-			chunk.RenderedHash = matches[1]
-			chunk.StartLineIndex = idx
-			chunk.ImageRelativeLineIndex = 0
-			break
-		}
+	var err error
+	renderTemplateManager := RenderTemplateManager{}
+	switch chunk.RenderOptions.Mode {
+	case "normal":
+		err = renderTemplateManager.Normal(lines, codeBlockIndex, chunk)
+	case "code-collapsed":
+		err = renderTemplateManager.CodeCollapsed(lines, codeBlockIndex, chunk)
+	case "image-collapsed":
+		err = renderTemplateManager.ImageCollapsed(lines, codeBlockIndex, chunk)
+	case "code-hidden":
+		err = renderTemplateManager.CodeHidden(lines, codeBlockIndex, chunk)
+	default:
+		return nil, errors.New("unsupported mode")
 	}
-
-	chunk.Lines = append(chunk.Lines, lines[chunk.StartLineIndex:chunk.EndLineIndex+1]...)
+	if err != nil {
+		return nil, err
+	}
 
 	return chunk, nil
 }
