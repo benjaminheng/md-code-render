@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,19 @@ import (
 // Capture group on the hash.
 var renderedImageRegexp = regexp.MustCompile(`!\[render-.{32}\..+\]\(.*render-(.{32})\..+\)`)
 
+type RenderOptions struct {
+	Mode string `json:"mode"` // Modes: normal, code-collapsed, image-collapsed, code-hidden
+}
+
+func (o *RenderOptions) Validate() error {
+	switch o.Mode {
+	case "normal", "code-collapsed", "image-collapsed", "code-hidden":
+	default:
+		return errors.New("unsupported mode")
+	}
+	return nil
+}
+
 // Chunk represents a segment of a file
 type Chunk struct {
 	Lines          []string // Lines the chunk contains
@@ -30,6 +44,7 @@ type Chunk struct {
 	ImageRelativeLineIndex int      // Where the image is located in the chunk. Index is relative to the chunk's lines.
 	RenderedHash           string   // If image has been rendered before, contains the hash of the code block previously used to render the image
 	CodeBlockContent       []string // The contents of the code block
+	RenderOptions          RenderOptions
 }
 
 func (r *Chunk) ShouldRender() bool {
@@ -219,6 +234,17 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	chunk.IsRenderable = true
 	chunk.Language = language
 	chunk.StartLineIndex = codeBlockIndex
+	chunk.RenderOptions.Mode = "normal"
+
+	fence := lines[codeBlockIndex]
+	renderOptionsJSON := strings.TrimPrefix(fence, fmt.Sprintf("```%s render", language))
+	if strings.HasPrefix(renderOptionsJSON, "{") && strings.HasSuffix(renderOptionsJSON, "}") {
+		var renderOptions RenderOptions
+		err := json.Unmarshal([]byte(renderOptionsJSON), &renderOptions)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Collect code block
 	for i := codeBlockIndex + 1; i < len(lines); i++ {
@@ -229,6 +255,15 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 		} else {
 			chunk.CodeBlockContent = append(chunk.CodeBlockContent, line)
 		}
+	}
+
+	switch chunk.RenderOptions.Mode {
+	case "normal":
+		// TODO: check 2 lines above the code block
+	case "code-collapsed":
+	case "image-collapsed":
+	case "code-hidden":
+		// TODO: implement templates
 	}
 
 	// Check 2 lines above if the image has been rendered before
