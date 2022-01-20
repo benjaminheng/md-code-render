@@ -15,28 +15,26 @@ it does what I need it to.
 ## Example
 
 ```bash
-md-code-renderer render --languages dot --output-dir ./static/diagrams/ --link-prefix "./diagrams/" ./file.md
+md-code-renderer render --languages dot --output-dir example/ --link-prefix "./example/" ./README.md
 ```
 
 To mark a code block for rendering, add the `render` keyword to the opening fence.
 
     ```dot render
     digraph G {
-        A -> B;
-        B -> C -> D;
-        B -> E;
+        rankdir=LR;
+        A -> B -> C;
     }
     ```
 
 By default, the image will be rendered and placed above the code block.
 
-    ![render-34d8458eb066b9b3ac396fd5aee4c068.svg](/diagrams/render-34d8458eb066b9b3ac396fd5aee4c068.svg)
+    ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
     ```dot render
     digraph G {
-        A -> B;
-        B -> C -> D;
-        B -> E;
+        rankdir=LR;
+        A -> B -> C;
     }
     ```
 
@@ -51,7 +49,9 @@ Supported modes are:
 - `image-collapsed`
 - `code-hidden`
 
-### `normal` mode:
+### `normal` mode
+
+Image is placed above the code block.
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
@@ -62,7 +62,9 @@ digraph G {
 }
 ```
 
-### `code-collapsed` mode:
+### `code-collapsed` mode
+
+Image is placed above the code block. Code block is collapsed.
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
@@ -77,7 +79,9 @@ digraph G {
 
 </details>
 
-### `image-collapsed` mode:
+### `image-collapsed` mode
+
+Code block is placed above the image. Image is collapsed.
 
 ```dot render{"mode": "image-collapsed"}
 digraph G {
@@ -92,7 +96,10 @@ digraph G {
 
 </details>
 
-### `code-hidden` mode:
+### `code-hidden` mode
+
+The code block will be hidden in this mode. It will still be viewable in the
+HTML source code as a HTML comment.
 
 ![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
