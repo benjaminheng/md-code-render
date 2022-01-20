@@ -12,6 +12,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -65,10 +67,42 @@ func run() error {
 	return nil
 }
 
+type Config struct {
+	Files []string // Markdown files to process
+
+	Render struct {
+		OutputDir  string // Directory to output rendered files to
+		Languages  string // Languages to render, comma separated
+		LinkPrefix string // Prefix to use when linking to rendered files
+	}
+}
+
+var config Config
+
+func NewRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "md-code-render",
+		Short: "A processor to render code blocks in Markdown files",
+		Long:  ``,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return errors.New("no files specified as input")
+			}
+			config.Files = args
+			return nil
+		},
+		SilenceUsage: true,
+	}
+
+	cmd.AddCommand(NewRenderCmd())
+	return cmd
+}
+
 func main() {
-	err := run()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	if err := NewRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
 }
