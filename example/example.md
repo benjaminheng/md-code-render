@@ -2,7 +2,7 @@
 
 ## Normal mode
 
-![render-48fb4eec0b5d357512d90010cdef8bff.svg](render-48fb4eec0b5d357512d90010cdef8bff.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 ```dot render
 digraph G {
@@ -11,7 +11,7 @@ digraph G {
 }
 ```
 
-![render-48fb4eec0b5d357512d90010cdef8bff.svg](render-48fb4eec0b5d357512d90010cdef8bff.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 ```dot render{"mode": "normal"}
 digraph G {
@@ -22,7 +22,7 @@ digraph G {
 
 ## Code collapsed mode
 
-![render-48fb4eec0b5d357512d90010cdef8bff.svg](render-48fb4eec0b5d357512d90010cdef8bff.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 <details><summary>Source</summary>
 
@@ -46,7 +46,7 @@ digraph G {
 
 <details><summary>Image</summary>
 
-![render-48fb4eec0b5d357512d90010cdef8bff.svg](render-48fb4eec0b5d357512d90010cdef8bff.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 </details>
 
@@ -56,7 +56,7 @@ The code block will be hidden in this mode. It will still be viewable in in the
 HTML source code as a HTML comment. The render directive for this code block is
 `render{"mode": "code-hidden"}`.
 
-![render-48fb4eec0b5d357512d90010cdef8bff.svg](render-48fb4eec0b5d357512d90010cdef8bff.svg)
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
 
 <!--
 ```dot render{"mode": "code-hidden"}
