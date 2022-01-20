@@ -244,39 +244,26 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// Collect code block
-	for i := codeBlockIndex + 1; i < len(lines); i++ {
-		line := lines[i]
-		if line == "```" {
-			chunk.EndLineIndex = i
-			break
-		} else {
-			chunk.CodeBlockContent = append(chunk.CodeBlockContent, line)
+		err = renderOptions.Validate()
+		if err != nil {
+			return nil, err
 		}
 	}
 
+	var err error
+	renderTemplateManager := RenderTemplateManager{}
 	switch chunk.RenderOptions.Mode {
 	case "normal":
-		// TODO: check 2 lines above the code block
+		err = renderTemplateManager.Normal(lines, codeBlockIndex, chunk)
 	case "code-collapsed":
 	case "image-collapsed":
 	case "code-hidden":
 		// TODO: implement templates
+	default:
+		return nil, errors.New("unsupported mode")
 	}
-
-	// Check 2 lines above if the image has been rendered before
-	for i := 1; i <= 2; i++ {
-		idx := codeBlockIndex - i
-		prevLine := lines[idx]
-		matches := renderedImageRegexp.FindStringSubmatch(prevLine)
-		if len(matches) == 2 {
-			chunk.RenderedHash = matches[1]
-			chunk.StartLineIndex = idx
-			chunk.ImageRelativeLineIndex = 0
-			break
-		}
+	if err != nil {
+		return nil, err
 	}
 
 	chunk.Lines = append(chunk.Lines, lines[chunk.StartLineIndex:chunk.EndLineIndex+1]...)
@@ -296,4 +283,47 @@ func runShellCommand(command string, args []string, stdin io.Reader) (stdoutOutp
 
 func buildMarkdownImage(outputFilename, linkPrefix string) string {
 	return fmt.Sprintf("![%s](%s)", outputFilename, linkPrefix+outputFilename)
+}
+
+// RenderTemplateManager contains methods to handle the templates for different rendering modes.
+type RenderTemplateManager struct{}
+
+// Normal handles the template for the "normal" mode. The template looks like:
+//
+//	![]()
+//
+//	```dot render
+//	```
+func (m RenderTemplateManager) Normal(lines []string, codeBlockIndex int, chunk *Chunk) (err error) {
+	content, codeBlockEndIndex, err := m.collectCodeBlock(lines, codeBlockIndex)
+	if err != nil {
+		return err
+	}
+	chunk.CodeBlockContent = content
+	chunk.EndLineIndex = codeBlockEndIndex
+
+	// Check 2 lines above if the image has been rendered before
+	for i := 1; i <= 2; i++ {
+		idx := codeBlockIndex - i
+		prevLine := lines[idx]
+		matches := renderedImageRegexp.FindStringSubmatch(prevLine)
+		if len(matches) == 2 {
+			chunk.RenderedHash = matches[1]
+			chunk.StartLineIndex = idx
+			chunk.ImageRelativeLineIndex = 0
+			break
+		}
+	}
+	return nil
+}
+
+func (m RenderTemplateManager) collectCodeBlock(lines []string, codeBlockIndex int) (content []string, codeBlockEndIndex int, err error) {
+	for i := codeBlockIndex + 1; i < len(lines); i++ {
+		line := lines[i]
+		if line == "```" {
+			return content, i, nil
+		}
+		content = append(content, line)
+	}
+	return nil, 0, errors.New("code block is unterminated")
 }
