@@ -259,7 +259,7 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	case "image-collapsed":
 		err = renderTemplateManager.ImageCollapsed(lines, codeBlockIndex, chunk)
 	case "code-hidden":
-		// TODO: implement templates
+		err = renderTemplateManager.CodeHidden(lines, codeBlockIndex, chunk)
 	default:
 		return nil, errors.New("unsupported mode")
 	}
@@ -422,6 +422,54 @@ func (m RenderTemplateManager) ImageCollapsed(lines []string, codeBlockIndex int
 		chunk.Lines = append([]string{fenceStart}, chunk.CodeBlockContent...)
 		chunk.Lines = append(chunk.Lines, []string{fenceEnd, "", openingDetailsTag, "", "<!-- image here --", "", closingDetailsTag}...)
 		chunk.ImageRelativeLineIndex = len(chunk.Lines) - 3
+		chunk.RenderedHash = ""
+	} else {
+		chunk.Lines = lines[chunk.StartLineIndex : chunk.EndLineIndex+1]
+	}
+	return nil
+}
+
+// CodeHidden handles the template for the "code-hidden" mode. The template looks like:
+//
+//	![]()
+//
+//	<!--
+//	```dot render
+//	```
+//	-->
+func (m RenderTemplateManager) CodeHidden(lines []string, codeBlockIndex int, chunk *Chunk) (err error) {
+	content, codeBlockEndIndex, fenceStart, fenceEnd, err := m.collectCodeBlock(lines, codeBlockIndex)
+	if err != nil {
+		return err
+	}
+	chunk.CodeBlockContent = content
+	chunk.StartLineIndex = codeBlockIndex
+	chunk.EndLineIndex = codeBlockEndIndex
+
+	// Check if rendered before
+	openingCommentTag := "<!--"
+	hasOpeningCommentTag := codeBlockIndex-1 > 0 && lines[codeBlockIndex-1] == openingCommentTag
+	closingCommentTag := "-->"
+	hasClosingCommentTag := codeBlockEndIndex+1 < len(lines) && lines[codeBlockEndIndex+1] == closingCommentTag
+	var hasImage bool
+	if codeBlockIndex-3 > 0 {
+		line := lines[codeBlockIndex-3]
+		matches := renderedImageRegexp.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			chunk.RenderedHash = matches[1]
+			chunk.StartLineIndex = codeBlockIndex - 3
+			chunk.ImageRelativeLineIndex = 0
+			hasImage = true
+		}
+	}
+
+	// Render the template into the chunk. Image will be replaced later.
+	isRenderedBefore := hasOpeningCommentTag && hasClosingCommentTag && hasImage
+	if !isRenderedBefore {
+		chunk.Lines = []string{"<!-- image here -->", "", openingCommentTag, fenceStart}
+		chunk.Lines = append(chunk.Lines, chunk.CodeBlockContent...)
+		chunk.Lines = append(chunk.Lines, fenceEnd, closingCommentTag)
+		chunk.ImageRelativeLineIndex = 0
 		chunk.RenderedHash = ""
 	} else {
 		chunk.Lines = lines[chunk.StartLineIndex : chunk.EndLineIndex+1]
