@@ -20,13 +20,24 @@ import (
 // Capture group on the hash.
 var renderedImageRegexp = regexp.MustCompile(`!\[render-.{32}\..+\]\(.*render-(.{32})\..+\)`)
 
-var defaultRenderOptions = RenderOptions{Mode: "normal"}
+// Match: ![alt text](filename.ext)
+// Capture group on the filename.
+var markdownImageRegexp = regexp.MustCompile(`!\[.*\]\((.+)\)`)
+
+var (
+	defaultRenderMode    = "normal"
+	defaultRenderOptions = RenderOptions{Mode: defaultRenderMode}
+)
 
 type RenderOptions struct {
-	Mode string `json:"mode"` // Modes: normal, code-collapsed, image-collapsed, code-hidden
+	Mode     string `json:"mode"` // Modes: normal, code-collapsed, image-collapsed, code-hidden
+	Filename string `json:"filename"`
 }
 
 func (o *RenderOptions) Validate() error {
+	if o.Mode == "" {
+		o.Mode = defaultRenderMode
+	}
 	switch o.Mode {
 	case "normal", "code-collapsed", "image-collapsed", "code-hidden":
 	default:
@@ -54,6 +65,12 @@ func (r *Chunk) ShouldRender() bool {
 		return false
 	}
 	if r.HashContent() != r.RenderedHash {
+		return true
+	}
+	if r.RenderOptions.Filename != "" {
+		// If filename is pre-defined, we currently don't have a way to
+		// check if it's been rendered before. These code blocks will
+		// always be rendered.
 		return true
 	}
 	return false
@@ -84,7 +101,11 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 		return "", fmt.Errorf("unsupported type: %s", r.Language)
 	}
 
-	fileName = "render-" + r.HashContent() + "." + ext
+	if r.RenderOptions.Filename != "" {
+		fileName = r.RenderOptions.Filename
+	} else {
+		fileName = "render-" + r.HashContent() + "." + ext
+	}
 	outputFilePath := path.Join(outputDir, fileName)
 	f, err := os.Create(outputFilePath)
 	if err != nil {

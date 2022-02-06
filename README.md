@@ -41,15 +41,12 @@ By default, the image will be rendered and placed above the code block.
     ```
 
 The `render` keyword supports options, which can be specified in the form
-`render{"mode": "normal"}`. If no options are passed, the default mode is
-`normal`.
+`render{"optionName": "value"}`. Supported options are:
 
-Supported modes are:
-
-- `normal`
-- `code-collapsed`
-- `image-collapsed`
-- `code-hidden`
+- `mode`: The placement of rendered images. Supported modes: `normal`
+  (default), `code-collapsed`, `image-collapsed`, `code-hidden`.
+- `filename`: The filename of the rendered image. If not specified, the
+  filename will be automatically generated as `render-{hash}.svg`.
 
 ### `normal` mode
 
@@ -113,3 +110,18 @@ digraph G {
 }
 ```
 -->
+
+### Custom `filename`
+
+The options for this code block are: `{"filename":
+"readme-example-custom-filename.svg"}`. The generated image will use this
+filename.
+
+![readme-example-custom-filename.svg](./example/readme-example-custom-filename.svg)
+
+```dot render{"filename": "readme-example-custom-filename.svg"}
+digraph G {
+    rankdir=LR;
+    A -> B -> C;
+}
+```

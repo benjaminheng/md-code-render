@@ -25,12 +25,12 @@ func (m RenderTemplateManager) Normal(lines []string, codeBlockIndex int, chunk 
 	for i := 1; i <= 2; i++ {
 		idx := codeBlockIndex - i
 		prevLine := lines[idx]
-		matches := renderedImageRegexp.FindStringSubmatch(prevLine)
-		if len(matches) == 2 {
-			chunk.RenderedHash = matches[1]
+		hasImage := m.checkForImage(chunk, prevLine, func() {
 			chunk.StartLineIndex = idx
 			chunk.ImageRelativeLineIndex = 0
 			isRenderedBefore = true
+		})
+		if hasImage {
 			break
 		}
 	}
@@ -75,13 +75,10 @@ func (m RenderTemplateManager) CodeCollapsed(lines []string, codeBlockIndex int,
 	var hasImage bool
 	if codeBlockIndex-4 >= 0 {
 		line := lines[codeBlockIndex-4]
-		matches := renderedImageRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			chunk.RenderedHash = matches[1]
+		hasImage = m.checkForImage(chunk, line, func() {
 			chunk.StartLineIndex = codeBlockIndex - 4
 			chunk.ImageRelativeLineIndex = 0
-			hasImage = true
-		}
+		})
 	}
 
 	// Render the template into the chunk. Image will be replaced later.
@@ -125,13 +122,10 @@ func (m RenderTemplateManager) ImageCollapsed(lines []string, codeBlockIndex int
 	var hasImage bool
 	if codeBlockEndIndex+4 < len(lines) {
 		line := lines[codeBlockEndIndex+4]
-		matches := renderedImageRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			chunk.RenderedHash = matches[1]
+		hasImage = m.checkForImage(chunk, line, func() {
 			chunk.EndLineIndex = codeBlockEndIndex + 6
 			chunk.ImageRelativeLineIndex = (chunk.EndLineIndex - chunk.StartLineIndex) - 2
-			hasImage = true
-		}
+		})
 	}
 
 	// Render the template into the chunk. Image will be replaced later.
@@ -172,13 +166,10 @@ func (m RenderTemplateManager) CodeHidden(lines []string, codeBlockIndex int, ch
 	var hasImage bool
 	if codeBlockIndex-3 > 0 {
 		line := lines[codeBlockIndex-3]
-		matches := renderedImageRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			chunk.RenderedHash = matches[1]
+		hasImage = m.checkForImage(chunk, line, func() {
 			chunk.StartLineIndex = codeBlockIndex - 3
 			chunk.ImageRelativeLineIndex = 0
-			hasImage = true
-		}
+		})
 	}
 
 	// Render the template into the chunk. Image will be replaced later.
@@ -204,4 +195,22 @@ func (m RenderTemplateManager) collectCodeBlock(lines []string, codeBlockIndex i
 		content = append(content, line)
 	}
 	return nil, 0, "", "", errors.New("code block is unterminated")
+}
+
+func (m RenderTemplateManager) checkForImage(chunk *Chunk, line string, imageExistsFn func()) (imageExists bool) {
+	if chunk.RenderOptions.Filename != "" {
+		matches := markdownImageRegexp.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			imageExistsFn()
+			return true
+		}
+	} else {
+		matches := renderedImageRegexp.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			chunk.RenderedHash = matches[1]
+			imageExistsFn()
+			return true
+		}
+	}
+	return false
 }
