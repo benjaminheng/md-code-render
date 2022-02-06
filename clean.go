@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
+
+var renderedImageFilenameRegexp = regexp.MustCompile(`render-.{32}\.(svg|png)`)
 
 func NewCleanCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -47,6 +50,9 @@ func cleanCmd(cmd *cobra.Command, args []string) error {
 	}
 	for _, v := range entries {
 		if v.IsDir() {
+			continue
+		}
+		if !renderedImageFilenameRegexp.MatchString(v.Name()) {
 			continue
 		}
 		// This is not efficient, since we are iterating through the
