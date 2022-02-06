@@ -111,9 +111,9 @@ digraph G {
 ```
 -->
 
-### Custom `filename`
+### Custom filename
 
-The options for this code block are: `{"filename":
+The options for this code block is: `{"filename":
 "readme-example-custom-filename.svg"}`. The generated image will use this
 filename.
 
