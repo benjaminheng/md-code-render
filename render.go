@@ -168,7 +168,8 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 	if err != nil {
 		return err
 	}
-	lines := strings.Split(string(b), "\n")
+	inputFileContent := string(b)
+	lines := strings.Split(inputFileContent, "\n")
 
 	// Construct a lookup for O(1) access
 	typeLookup := make(map[string]bool)
@@ -220,7 +221,6 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 	}
 
 	// Render the renderable chunks and join the chunks back into a file
-	var fileHasChanged bool
 	var outputLines []string
 	for _, chunk := range chunks {
 		if chunk.ShouldRender() {
@@ -229,20 +229,19 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 				return err
 			}
 			fmt.Printf("file=%s rendered=%s\n", filePath, imageFileName)
-			fileHasChanged = true
 		}
 		outputLines = append(outputLines, chunk.Lines...)
 	}
 
-	// Write to disk
-	if fileHasChanged {
+	// Write to disk if file has changed
+	outputContent := strings.Join(outputLines, "\n")
+	if inputFileContent != outputContent {
 		writer, err := os.OpenFile(filePath, os.O_WRONLY, 0666)
 		if err != nil {
 			return err
 		}
 		defer writer.Close()
-		output := strings.Join(outputLines, "\n")
-		writer.WriteString(output)
+		writer.WriteString(outputContent)
 	}
 
 	return nil
