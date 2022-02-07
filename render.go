@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -82,18 +83,22 @@ func (r *Chunk) HashContent() string {
 
 func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, err error) {
 	var content []byte
-	var ext string
+	if r.RenderOptions.Filename != "" {
+		fileName = r.RenderOptions.Filename
+	} else {
+		fileName = "render-" + r.HashContent() + ".svg"
+	}
 
 	switch r.Language {
 	case "dot":
-		ext = "svg"
-		content, err = runShellCommand("dot", []string{"-Tsvg"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
+		ext := extFromFilename(fileName, []string{"svg", "png"}, "svg")
+		content, err = runShellCommand("dot", []string{getDotFormatFlag(ext)}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
 		if err != nil {
 			return "", err
 		}
 	case "plantuml":
-		ext = "svg"
-		content, err = runShellCommand("plantuml", []string{"-tsvg", "-pipe"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
+		ext := extFromFilename(fileName, []string{"svg", "png"}, "svg")
+		content, err = runShellCommand("plantuml", []string{getPlantUMLFormatFlag(ext), "-pipe"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
 		if err != nil {
 			return "", err
 		}
@@ -101,11 +106,6 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 		return "", fmt.Errorf("unsupported type: %s", r.Language)
 	}
 
-	if r.RenderOptions.Filename != "" {
-		fileName = r.RenderOptions.Filename
-	} else {
-		fileName = "render-" + r.HashContent() + "." + ext
-	}
 	outputFilePath := path.Join(outputDir, fileName)
 	f, err := os.Create(outputFilePath)
 	if err != nil {
@@ -302,4 +302,36 @@ func runShellCommand(command string, args []string, stdin io.Reader) (stdoutOutp
 
 func buildMarkdownImage(outputFilename, linkPrefix string) string {
 	return fmt.Sprintf("![%s](%s)", outputFilename, linkPrefix+outputFilename)
+}
+
+func extFromFilename(filename string, acceptedExtensions []string, defaultExtension string) string {
+	ext := filepath.Ext(filename)
+	for _, v := range acceptedExtensions {
+		if ext == v {
+			return ext
+		}
+	}
+	return defaultExtension
+}
+
+func getDotFormatFlag(fileExtension string) string {
+	switch fileExtension {
+	case "png":
+		return "-Tpng"
+	case "svg":
+		return "-Tsvg"
+	default:
+		return "-Tsvg"
+	}
+}
+
+func getPlantUMLFormatFlag(fileExtension string) string {
+	switch fileExtension {
+	case "png":
+		return "-tpng"
+	case "svg":
+		return "-tsvg"
+	default:
+		return "-tsvg"
+	}
 }

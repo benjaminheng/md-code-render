@@ -117,11 +117,49 @@ The options for this code block is: `{"filename":
 "readme-example-custom-filename.svg"}`. The generated image will use this
 filename.
 
-![readme-example-custom-filename.svg](./example/readme-example-custom-filename.svg)
-
-```dot render{"filename": "readme-example-custom-filename.svg"}
+```dot render{"mode": "image-collapsed", "filename": "readme-example-custom-filename.svg"}
 digraph G {
     rankdir=LR;
     A -> B -> C;
 }
 ```
+
+<details><summary>Image</summary>
+
+![readme-example-custom-filename.svg](./example/readme-example-custom-filename.svg)
+
+</details>
+
+### Different output formats
+
+If filename is specified, the output format is inferred from the file's
+extension. Supported output formats:
+
+- `dot`: svg (default), png
+- `plantuml`: svg (default), png
+
+```dot render{"mode": "image-collapsed", "filename": "readme-example-output-format-png.png"}
+digraph G {
+    rankdir=LR;
+    A -> B -> C;
+}
+```
+
+<details><summary>Image</summary>
+
+![readme-example-output-format-png.png](./example/readme-example-output-format-png.png)
+
+</details>
+
+```dot render{"mode": "image-collapsed", "filename": "readme-example-output-format-svg.svg"}
+digraph G {
+    rankdir=LR;
+    A -> B -> C;
+}
+```
+
+<details><summary>Image</summary>
+
+![readme-example-output-format-svg.svg](./example/readme-example-output-format-svg.svg)
+
+</details>
