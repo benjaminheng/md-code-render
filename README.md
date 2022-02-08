@@ -12,13 +12,14 @@ rendered image _alongside_ the code block. This tool is fairly opinionated at
 the moment. I may extend and generalize it in the future, though at the moment
 it does what I need it to.
 
-## Example
+## Features
 
-This readme has been processed by `md-code-renderer` to render the diagrams.
+- PlantUML and Graphviz diagrams
+- SVG and PNG rendering
+- Various output templates: `normal`, `code-collapsed`, `image-collapsed`, `code-hidden`
+- Custom output filenames
 
-```bash
-md-code-renderer render --languages dot --output-dir example/ --link-prefix "./example/" ./README.md
-```
+## Usage
 
 To mark a code block for rendering, add the `render` keyword to the opening fence.
 
@@ -47,6 +48,12 @@ The `render` keyword supports options, which can be specified in the form
   (default), `code-collapsed`, `image-collapsed`, `code-hidden`.
 - `filename`: The filename of the rendered image. If not specified, the
   filename will be automatically generated as `render-{hash}.svg`.
+
+## Examples
+
+I recommend viewing the [raw
+source](https://github.com/benjaminheng/md-code-renderer/blob/master/README.md?plain=1)
+of this readme as well.
 
 ### `normal` mode
 
@@ -133,10 +140,8 @@ digraph G {
 ### Different output formats
 
 If filename is specified, the output format is inferred from the file's
-extension. Supported output formats:
-
-- `dot`: svg (default), png
-- `plantuml`: svg (default), png
+extension. In this example the filename has a `.png` extension, so a PNG image
+is rendered.
 
 ```dot render{"mode": "image-collapsed", "filename": "readme-example-output-format-png.png"}
 digraph G {
@@ -148,18 +153,5 @@ digraph G {
 <details><summary>Image</summary>
 
 ![readme-example-output-format-png.png](./example/readme-example-output-format-png.png)
-
-</details>
-
-```dot render{"mode": "image-collapsed", "filename": "readme-example-output-format-svg.svg"}
-digraph G {
-    rankdir=LR;
-    A -> B -> C;
-}
-```
-
-<details><summary>Image</summary>
-
-![readme-example-output-format-svg.svg](./example/readme-example-output-format-svg.svg)
 
 </details>
