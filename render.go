@@ -305,7 +305,7 @@ func buildMarkdownImage(outputFilename, linkPrefix string) string {
 }
 
 func extFromFilename(filename string, acceptedExtensions []string, defaultExtension string) string {
-	ext := filepath.Ext(filename)
+	ext := strings.TrimPrefix(filepath.Ext(filename), ".")
 	for _, v := range acceptedExtensions {
 		if ext == v {
 			return ext
