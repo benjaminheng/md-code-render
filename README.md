@@ -133,7 +133,7 @@ digraph G {
 
 <details><summary>Image</summary>
 
-![readme-example-custom-filename.svg](./example/readme-example-custom-filename.svg)
+![readme-example-custom-filename.svg](./example/readme-example-custom-filename.svg) <!-- hash:32455c4f -->
 
 </details>
 
@@ -152,6 +152,6 @@ digraph G {
 
 <details><summary>Image</summary>
 
-![readme-example-output-format-png.png](./example/readme-example-output-format-png.png)
+![readme-example-output-format-png.png](./example/readme-example-output-format-png.png) <!-- hash:32455c4f -->
 
 </details>

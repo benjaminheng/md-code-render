@@ -21,6 +21,8 @@ import (
 // Capture group on the hash.
 var renderedImageRegexp = regexp.MustCompile(`!\[render-.{32}\..+\]\(.*render-(.{32})\..+\)`)
 
+var renderedHashRegexp = regexp.MustCompile(`<!-- hash:(.{8}) -->`)
+
 // Match: ![alt text](filename.ext)
 // Capture group on the filename.
 var markdownImageRegexp = regexp.MustCompile(`!\[.*\]\((.+)\)`)
@@ -55,8 +57,9 @@ type Chunk struct {
 
 	IsRenderable           bool
 	Language               string
-	ImageRelativeLineIndex int      // Where the image is located in the chunk. Index is relative to the chunk's lines.
-	RenderedHash           string   // If image has been rendered before, contains the hash of the code block previously used to render the image
+	ImageRelativeLineIndex int    // Where the image is located in the chunk. Index is relative to the chunk's lines.
+	RenderedHash           string // If image has been rendered before, contains the hash of the code block previously used to render the image
+	HasHashComment         bool
 	CodeBlockContent       []string // The contents of the code block
 	RenderOptions          RenderOptions
 }
@@ -65,13 +68,11 @@ func (r *Chunk) ShouldRender() bool {
 	if !r.IsRenderable {
 		return false
 	}
-	if r.HashContent() != r.RenderedHash {
-		return true
-	}
-	if r.RenderOptions.Filename != "" {
-		// If filename is pre-defined, we currently don't have a way to
-		// check if it's been rendered before. These code blocks will
-		// always be rendered.
+
+	// Support both a full hash (32 characters) and a short hash (8 characters)
+	hash := r.HashContent()
+	shortHash := hash[:8]
+	if r.HashContent() != r.RenderedHash && shortHash != r.RenderedHash {
 		return true
 	}
 	return false
@@ -116,6 +117,10 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 
 	// Update the chunk's lines
 	image := buildMarkdownImage(fileName, linkPrefix)
+	if r.HasHashComment {
+		hashComment := buildHashComment(r.HashContent()[:8])
+		image = image + " " + hashComment
+	}
 	r.Lines[r.ImageRelativeLineIndex] = image
 
 	return fileName, nil
@@ -269,6 +274,11 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 		chunk.RenderOptions = defaultRenderOptions
 	}
 
+	// Add a hash comment if a custom filename is set
+	if chunk.RenderOptions.Filename != "" {
+		chunk.HasHashComment = true
+	}
+
 	var err error
 	renderTemplateManager := RenderTemplateManager{}
 	switch chunk.RenderOptions.Mode {
@@ -302,6 +312,10 @@ func runShellCommand(command string, args []string, stdin io.Reader) (stdoutOutp
 
 func buildMarkdownImage(outputFilename, linkPrefix string) string {
 	return fmt.Sprintf("![%s](%s)", outputFilename, linkPrefix+outputFilename)
+}
+
+func buildHashComment(hash string) string {
+	return fmt.Sprintf("<!-- hash:%s -->", hash)
 }
 
 func extFromFilename(filename string, acceptedExtensions []string, defaultExtension string) string {

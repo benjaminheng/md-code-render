@@ -1,6 +1,8 @@
 package main
 
-import "errors"
+import (
+	"errors"
+)
 
 // RenderTemplateManager contains methods to handle the templates for different rendering modes.
 type RenderTemplateManager struct{}
@@ -28,6 +30,7 @@ func (m RenderTemplateManager) Normal(lines []string, codeBlockIndex int, chunk 
 		hasImage := m.checkForImage(chunk, prevLine, func() {
 			chunk.StartLineIndex = idx
 			chunk.ImageRelativeLineIndex = 0
+			m.readHashComment(chunk, prevLine)
 			isRenderedBefore = true
 		})
 		if hasImage {
@@ -78,6 +81,7 @@ func (m RenderTemplateManager) CodeCollapsed(lines []string, codeBlockIndex int,
 		hasImage = m.checkForImage(chunk, line, func() {
 			chunk.StartLineIndex = codeBlockIndex - 4
 			chunk.ImageRelativeLineIndex = 0
+			m.readHashComment(chunk, line)
 		})
 	}
 
@@ -125,6 +129,7 @@ func (m RenderTemplateManager) ImageCollapsed(lines []string, codeBlockIndex int
 		hasImage = m.checkForImage(chunk, line, func() {
 			chunk.EndLineIndex = codeBlockEndIndex + 6
 			chunk.ImageRelativeLineIndex = (chunk.EndLineIndex - chunk.StartLineIndex) - 2
+			m.readHashComment(chunk, line)
 		})
 	}
 
@@ -169,6 +174,7 @@ func (m RenderTemplateManager) CodeHidden(lines []string, codeBlockIndex int, ch
 		hasImage = m.checkForImage(chunk, line, func() {
 			chunk.StartLineIndex = codeBlockIndex - 3
 			chunk.ImageRelativeLineIndex = 0
+			m.readHashComment(chunk, line)
 		})
 	}
 
@@ -211,6 +217,21 @@ func (m RenderTemplateManager) checkForImage(chunk *Chunk, line string, imageExi
 			imageExistsFn()
 			return true
 		}
+	}
+	return false
+}
+
+func (m RenderTemplateManager) readHashComment(chunk *Chunk, line string) (hasHash bool) {
+	// Only check for the hash comment if a custom filename is set.
+	// Otherwise the hash is contained in the auto-generated filename
+	// instead.
+	if chunk.RenderOptions.Filename == "" {
+		return
+	}
+	matches := renderedHashRegexp.FindStringSubmatch(line)
+	if len(matches) == 2 {
+		chunk.RenderedHash = matches[1]
+		return true
 	}
 	return false
 }
