@@ -18,6 +18,7 @@ it does what I need it to.
 - SVG and PNG rendering
 - Various output templates: `normal`, `code-collapsed`, `image-collapsed`, `code-hidden`
 - Custom output filenames
+- Images will only be re-rendered if the code block content has changed
 
 ## Usage
 
