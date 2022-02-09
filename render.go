@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -95,13 +95,13 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 		ext := extFromFilename(fileName, []string{"svg", "png"}, "svg")
 		content, err = runShellCommand("dot", []string{getDotFormatFlag(ext)}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
 		if err != nil {
-			return "", err
+			return "", errors.Wrap(err, "render graphviz")
 		}
 	case "plantuml":
 		ext := extFromFilename(fileName, []string{"svg", "png"}, "svg")
 		content, err = runShellCommand("plantuml", []string{getPlantUMLFormatFlag(ext), "-pipe"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
 		if err != nil {
-			return "", err
+			return "", errors.Wrap(err, "render plantuml")
 		}
 	default:
 		return "", fmt.Errorf("unsupported type: %s", r.Language)
@@ -110,7 +110,7 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 	outputFilePath := path.Join(outputDir, fileName)
 	f, err := os.Create(outputFilePath)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "create output file")
 	}
 	defer f.Close()
 	f.Write(content)
@@ -151,7 +151,7 @@ func renderCmd(cmd *cobra.Command, args []string) error {
 	for _, v := range args {
 		err := processFile(v, languages, config.Render.OutputDir, config.Render.LinkPrefix)
 		if err != nil {
-			return err
+			return errors.Wrap(err, fmt.Sprintf("process file %s", v))
 		}
 	}
 	return nil
@@ -166,12 +166,12 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 	// Read file into lines
 	f, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, fmt.Sprintf("open file %s", filePath))
 	}
 	defer f.Close()
 	b, err := io.ReadAll(f)
 	if err != nil {
-		return err
+		return errors.Wrap(err, fmt.Sprintf("read file %s", filePath))
 	}
 	inputFileContent := string(b)
 	lines := strings.Split(inputFileContent, "\n")
@@ -199,7 +199,7 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 					// block to determine the renderable chunk.
 					renderChunk, err := getRenderableChunk(lines, idx, k)
 					if err != nil {
-						return err
+						return errors.Wrap(err, fmt.Sprintf("line %d: get renderable chunk", idx))
 					}
 					// Preceding lines not part of the renderable chunk are part of a
 					// normal chunk; construct one and add it to our list of chunks.
@@ -231,7 +231,7 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 		if chunk.ShouldRender() {
 			imageFileName, err := chunk.Render(outputDir, linkPrefix)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "render chunk")
 			}
 			fmt.Printf("file=%s rendered=%s\n", filePath, imageFileName)
 		}
@@ -243,7 +243,7 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 	if inputFileContent != outputContent {
 		writer, err := os.OpenFile(filePath, os.O_WRONLY, 0666)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "open file for writing")
 		}
 		defer writer.Close()
 		writer.WriteString(outputContent)
@@ -263,11 +263,11 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 		var renderOptions RenderOptions
 		err := json.Unmarshal([]byte(renderOptionsJSON), &renderOptions)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "unmarshal render options")
 		}
 		err = renderOptions.Validate()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "validate render options")
 		}
 		chunk.RenderOptions = renderOptions
 	} else {
@@ -294,7 +294,7 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 		return nil, errors.New("unsupported mode")
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "parse render template")
 	}
 
 	return chunk, nil
