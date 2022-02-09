@@ -54,6 +54,7 @@ type Chunk struct {
 	Lines          []string // Lines the chunk contains
 	StartLineIndex int      // Index is relative to the input file
 	EndLineIndex   int      // Index is relative to the input file
+	CodeBlockIndex int      // Primarily for logging, to identify the problematic code block
 
 	IsRenderable           bool
 	Language               string
@@ -231,9 +232,9 @@ func processFile(filePath string, types []string, outputDir string, linkPrefix s
 		if chunk.ShouldRender() {
 			imageFileName, err := chunk.Render(outputDir, linkPrefix)
 			if err != nil {
-				return errors.Wrap(err, "render chunk")
+				return errors.Wrap(err, fmt.Sprintf("line %d: render chunk", chunk.CodeBlockIndex+1))
 			}
-			fmt.Printf("file=%s rendered=%s\n", filePath, imageFileName)
+			fmt.Printf("[%s:%d] Rendered %s\n", filePath, chunk.CodeBlockIndex+1, imageFileName)
 		}
 		outputLines = append(outputLines, chunk.Lines...)
 	}
@@ -256,6 +257,7 @@ func getRenderableChunk(lines []string, codeBlockIndex int, language string) (*C
 	chunk := &Chunk{}
 	chunk.IsRenderable = true
 	chunk.Language = language
+	chunk.CodeBlockIndex = codeBlockIndex
 
 	fence := lines[codeBlockIndex]
 	renderOptionsJSON := strings.TrimPrefix(fence, fmt.Sprintf("```%s render", language))
