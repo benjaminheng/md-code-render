@@ -2,7 +2,7 @@
 
 Renders code blocks in Markdown files into images, and inlines the images in the file.
 
-- Supported languages: `dot`, `plantuml`
+- Supported languages: `dot` (GraphViz), `plantuml`, `pikchr`
 
 This is an experimental program for use in my knowledge base. The goal is to
 have code blocks containing diagramming DSLs, and be able to render them into
@@ -14,7 +14,7 @@ it does what I need it to.
 
 ## Features
 
-- PlantUML and Graphviz diagrams
+- PlantUML, Graphviz, Pikchr diagrams
 - SVG and PNG rendering
 - Various output templates: `normal`, `code-collapsed`, `image-collapsed`, `code-hidden`
 - Custom output filenames
@@ -154,5 +154,59 @@ digraph G {
 <details><summary>Image</summary>
 
 ![readme-example-output-format-png.png](./example/readme-example-output-format-png.png) <!-- hash:32455c4f -->
+
+</details>
+
+### Supported languages
+
+GraphViz:
+
+![render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg](./example/render-32455c4fc3bf7fc9a6c67d15f4cfd869.svg)
+
+<details><summary>Source</summary>
+
+```dot render{"mode": "code-collapsed"}
+digraph G {
+    rankdir=LR;
+    A -> B -> C;
+}
+```
+
+</details>
+
+PlantUML:
+
+![render-8a1e6dc8e45c652570867bef06d79e6c.svg](./example/render-8a1e6dc8e45c652570867bef06d79e6c.svg)
+
+<details><summary>Source</summary>
+
+```plantuml render{"mode": "code-collapsed"}
+@startuml
+[A] -> [B]
+[B] .> [C]
+[C] --> [D]
+@enduml
+```
+
+</details>
+
+Pikchr:
+
+![readme-example-pikchr.svg](./example/readme-example-pikchr.svg) <!-- hash:27692842 -->
+
+<details><summary>Source</summary>
+
+```pikchr render{"mode": "code-collapsed", "filename": "readme-example-pikchr.svg"}
+        scale = 0.9
+R1:     box "README.md" fit
+        arrow right
+MD:     box "md-code-renderer" fit
+        arrow right
+R2:     box width 2cm height 80% "README.md" "(modified)"
+IMG:    box "image.svg" width 2cm height 0.6cm at R2.s+(0,-1.2cm)
+        line from MD.s down until even with IMG.w " outputs" ljust
+        arrow right until even with IMG.w
+        arrow dashed from R2.s down to IMG.n " references" ljust
+```
 
 </details>

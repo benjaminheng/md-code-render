@@ -91,18 +91,24 @@ func (r *Chunk) Render(outputDir string, linkPrefix string) (fileName string, er
 		fileName = "render-" + r.HashContent() + ".svg"
 	}
 
+	codeBlockContent := strings.Join(r.CodeBlockContent, "\n")
 	switch r.Language {
 	case "dot":
 		ext := extFromFilename(fileName, []string{"svg", "png"}, "svg")
-		content, err = runShellCommand("dot", []string{getDotFormatFlag(ext)}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
+		content, err = runShellCommand("dot", []string{getDotFormatFlag(ext)}, strings.NewReader(codeBlockContent))
 		if err != nil {
 			return "", errors.Wrap(err, "render graphviz")
 		}
 	case "plantuml":
 		ext := extFromFilename(fileName, []string{"svg", "png"}, "svg")
-		content, err = runShellCommand("plantuml", []string{getPlantUMLFormatFlag(ext), "-pipe"}, strings.NewReader(strings.Join(r.CodeBlockContent, "\n")))
+		content, err = runShellCommand("plantuml", []string{getPlantUMLFormatFlag(ext), "-pipe"}, strings.NewReader(codeBlockContent))
 		if err != nil {
 			return "", errors.Wrap(err, "render plantuml")
+		}
+	case "pikchr":
+		content, err = runShellCommand("pikchr", []string{"--svg-only", "-"}, strings.NewReader(codeBlockContent))
+		if err != nil {
+			return "", errors.Wrap(err, "render pikchr")
 		}
 	default:
 		return "", fmt.Errorf("unsupported type: %s", r.Language)
@@ -141,7 +147,7 @@ func NewRenderCmd() *cobra.Command {
 		RunE: renderCmd,
 	}
 	cmd.Flags().StringVar(&config.Render.OutputDir, "output-dir", "", "Directory to render code blocks to. If not specified, output will be rendered to the same directory as the input file.")
-	cmd.Flags().StringVar(&config.Render.Languages, "languages", "", "(required) Languages to render. Comma-separated. Supported languages: [dot, plantuml].")
+	cmd.Flags().StringVar(&config.Render.Languages, "languages", "", "(required) Languages to render. Comma-separated. Supported languages: [dot, plantuml, pikchr].")
 	cmd.MarkFlagRequired("languages")
 	cmd.Flags().StringVar(&config.Render.LinkPrefix, "link-prefix", "", "Prefix to use when linking to rendered files")
 	return cmd
