@@ -1,0 +1,23 @@
+<svg xmlns='http://www.w3.org/2000/svg' class="pikchr" width="524" height="131" viewBox="0 0 583.445 146.959">
+<path d="M2.16,46.08L123.235,46.08L123.235,15.84L2.16,15.84Z"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<text x="62.6976" y="30.96" text-anchor="middle" fill="rgb(0,0,0)" dominant-baseline="central">README.md</text>
+<polygon points="195.235,30.96 183.715,35.28 183.715,26.64" style="fill:rgb(0,0,0)"/>
+<path d="M123.235,30.96L189.475,30.96"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<path d="M195.235,46.08L357.898,46.08L357.898,15.84L195.235,15.84Z"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<text x="276.566" y="30.96" text-anchor="middle" fill="rgb(0,0,0)" dominant-baseline="central">md-code-renderer</text>
+<polygon points="429.898,30.96 418.378,35.28 418.378,26.64" style="fill:rgb(0,0,0)"/>
+<path d="M357.898,30.96L424.138,30.96"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<path d="M429.898,59.76L543.283,59.76L543.283,2.16L429.898,2.16Z"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<text x="486.591" y="20.88" text-anchor="middle" fill="rgb(0,0,0)" dominant-baseline="central">README.md</text>
+<text x="486.591" y="41.04" text-anchor="middle" fill="rgb(0,0,0)" dominant-baseline="central">(modified)</text>
+<path d="M429.898,144.799L543.283,144.799L543.283,110.784L429.898,110.784Z"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<text x="486.591" y="127.791" text-anchor="middle" fill="rgb(0,0,0)" dominant-baseline="central">image.svg</text>
+<path d="M276.566,46.08L276.566,127.791"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<text x="276.566" y="86.9357" text-anchor="start" fill="rgb(0,0,0)" dominant-baseline="central"> outputs</text>
+<polygon points="429.898,127.791 418.378,132.111 418.378,123.471" style="fill:rgb(0,0,0)"/>
+<path d="M276.566,127.791L424.138,127.791"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);" />
+<polygon points="486.591,110.784 482.271,99.2636 490.911,99.2636" style="fill:rgb(0,0,0)"/>
+<path d="M486.591,59.76L486.591,105.024"  style="fill:none;stroke-width:2.16;stroke:rgb(0,0,0);stroke-dasharray:7.2,7.2;" />
+<text x="486.591" y="85.2718" text-anchor="start" fill="rgb(0,0,0)" dominant-baseline="central"> references</text>
+</svg>
+
